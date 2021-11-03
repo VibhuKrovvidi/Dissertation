@@ -18,4 +18,4 @@ This repository shows the preliminary version of the smart contract used to faci
 6. Next, run `truffle test` to run the unit tests
 
 
-
+Note that these instructions create a simulated Ethereum network locally. In practice, a Hyperledger Besu network was initialised and used to conduct smart contract tests.
