@@ -26,27 +26,31 @@ contract('Cred', function(accounts) {
   it('Add institution from first admin', async () => {
     let giveAcc = await cInstance.addInstitution(accounts[1], {from : accounts[0]});
     truffleAssert.eventEmitted(giveAcc, "institutionListed");
+    let testAddInst = await cInstance.getInstitutionStatus(accounts[1]);
+    assert(testAddInst.valueOf(), true, "Not Adding Institution Correctly");
   });
 
   it('Add institution from added admin', async () => {
     let giveAcc = await cInstance.addInstitution(accounts[7], {from : accounts[8]});
     truffleAssert.eventEmitted(giveAcc, "institutionListed");
+    let testAddInst = await cInstance.getInstitutionStatus(accounts[7]);
+    assert(testAddInst.valueOf(), true, "Not Adding Institution Correctly");
   });
 
   it('Do not Add institution if unauthorized', async () => {
-    let giveAcc = cInstance.addInstitution(accounts[7], {from : accounts[3]});
+    let giveAcc = cInstance.addInstitution(accounts[3], {from : accounts[3]});
     await truffleAssert.reverts(giveAcc, "Not Admin!");
   });
 
   it('Allow institution to issue credential', async () => {
-    let o = accounts[2];
-    let p = "abcde";
+    let o = accounts[2]; // Owner
+    let p = "abcde"; // Pointer contents
     
-    let doIssue = await cInstance.issueEduCred(o, p, { from: accounts[1] });
+    let doIssue = await cInstance.issueEduCred(o, p, { from: accounts[1]});
     truffleAssert.eventEmitted(doIssue, "credentialIssued");
   });
 
-  it('Do not Allow non-institution to issue credential', async () => {
+  it('Do not allow non-institution to issue credential', async () => {
     let o = accounts[2];
     let p = "abcde";
     
@@ -55,12 +59,12 @@ contract('Cred', function(accounts) {
   });
 
   it('Allow owner to verify that they own a credential', async() => {
-    let getCred = await cInstance.getCredentialOwner(0, {from:accounts[2]});
-    assert(getCred, "abcde");
+    let getCred = await cInstance.getCredentialOwned(0, {from:accounts[2]});
+    assert(getCred, "abcde", "Incorrect Pointer");
   });
 
   it('Do not allow non-owner to get cred', async() => {
-    let getCred = cInstance.getCredentialOwner(0, {from:accounts[3]});
+    let getCred = cInstance.getCredentialOwned(0, {from:accounts[3]});
     await truffleAssert.reverts(getCred, "Can't access credential");
   });
 
@@ -76,7 +80,7 @@ contract('Cred', function(accounts) {
     const root = tree.getRoot().toString('hex'); // Get root
     const leaf = SHA256(a4); // Take an example leaf
     const proof = tree.getProof(leaf); // Proof that leaf in tree
-    console.log(tree.verify(proof, leaf, root)) // verifies and outputs a boolean if true or false;
+    // console.log(tree.verify(proof, leaf, root)) // verifies and outputs a boolean if true or false;
 
     // Put merkel root in the desired credential --> Push to chain
     let addAcc = await cInstance.updateAccessList(0, root, {from: accounts[2]});
@@ -86,7 +90,7 @@ contract('Cred', function(accounts) {
   })
 
   // Account 2 is owner, Account 4 is verifier
-  it('Allow 3rd party to request verification', async() => {
+  it('Allow 3rd party to perform verification', async() => {
     let req = await cInstance.verifyCredentials(0, {from:accounts[4]});
   
     let eventRes = req.logs[0].args;
@@ -117,7 +121,7 @@ contract('Cred', function(accounts) {
     
   });
 
-  it('Disallow 3rd party to request verification if not in tree', async() => {
+  it('Disallow 3rd party to perform verification if not in tree', async() => {
     let req = await cInstance.verifyCredentials(0, {from:accounts[3]});
   
     let eventRes = req.logs[0].args;
@@ -168,13 +172,45 @@ contract('Cred', function(accounts) {
     const newProof = tree.getProof(verifier);
     const result = tree.verify(newProof, encryptedVerifier, mroot);
 
-    console.log("RESULT = ", result);
+    // console.log("RESULT = ", result);
 
     let provide = cInstance.provideCredential(0, result, verifier, {from:accounts[2]});
     await truffleAssert.reverts(provide, "Invalid Access Rights");
     
   });
 
+  it('Allow institution to add company', async () => {
+    let addCompany = await cInstance.addCompany(accounts[5], {from:accounts[1]});
+    truffleAssert.eventEmitted(addCompany, "companyListed");
 
+    let checkStatus = await cInstance.getCompanyStatus(accounts[5]);
+    assert(checkStatus.valueOf(), true, "Company not added properly");
+  });
+
+  it('Check statistics working correctly - I', async() => {
+    let stat = await cInstance.getCompanyStats(accounts[5]);
+    assert(stat.valueOf(), 50, "Statistics Incorrect");
+  });
+
+  it('Allow second institution to attest to company', async() => {
+    let addCompany = await cInstance.addCompany(accounts[5], {from:accounts[7]});
+    truffleAssert.eventEmitted(addCompany, "companyAttested");
+
+    let checkStatus = await cInstance.getCompanyStatus(accounts[5]);
+    assert(checkStatus.valueOf(), true, "Company not added properly");
+
+  });
+
+  it('Check statistics working correctly - II', async() => {
+    let stat = await cInstance.getCompanyStats(accounts[5]);
+    assert(stat.valueOf(), 100, "Statistics Incorrect");
+  });
+
+  it('Allow company to issue credential', async ()=> {
+    let o = accounts[2]; // Owner
+    let p = "abcde"; // Pointer contents
+    let issueCred = await cInstance.issueCompCred(o, p, {from:accounts[5]});
+    truffleAssert.eventEmitted(issueCred, "credentialIssued");
+  });
 
 });
