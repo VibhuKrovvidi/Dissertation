@@ -49,7 +49,9 @@ contract Cred {
 
     // Allows any admin to add other admins
     function addAdmin(address admin) public {
+        
         require(admins[msg.sender] == true, "Not Admin!");
+        require(verifiedInstitution[admin] == true, "Only Universities can become Admins");
         admins[admin] = true;
         emit addedAdmin(admin);
     }
