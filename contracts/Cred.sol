@@ -39,6 +39,7 @@ contract Cred {
     event grantedAccess(address verifier, string pointer);
     event addedAccess(uint256 id);
     event companyAttested(address company);
+    event credentialDeactivated(uint256 id);
 
     constructor() public {
         ids = 0; // Set id as 0 initially
@@ -199,4 +200,11 @@ contract Cred {
         return verifiedCompany[company];
     }
 
+    function deactivateCredential(uint256 id) public {
+        cred memory toDeactivate = credentials[id];
+        require(msg.sender == toDeactivate.issuer, "Can't deactivate credential!");
+        toDeactivate.active = false;
+        credentials[id] = toDeactivate;
+        emit credentialDeactivated(id);
+    }
 }
