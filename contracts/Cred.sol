@@ -2,6 +2,9 @@ pragma solidity ^0.5.0;
 
 contract Cred {
     uint256 ids; // How many total ids are in circulation
+    uint256 universityNumber; // How many unis in system?
+    uint256 companyNumber; // How many companies in system?
+    address owner;
 
     struct cred {
         uint256 id; // Unique id
@@ -19,8 +22,7 @@ contract Cred {
         uint256 coveragePercentage; // % of total universities
     }
 
-    uint256 universityNumber; // How many unis in system?
-    uint256 companyNumber; // How many companies in system?
+
 
     mapping(uint256 => cred) credentials; // ID to credential struct
     mapping(address => bool) verifiedInstitution; //Check if institution is verified
@@ -44,6 +46,7 @@ contract Cred {
     constructor() public {
         ids = 0; // Set id as 0 initially
         admins[msg.sender] = true; //Admin is initator of this contract
+        owner = msg.sender;
         universityNumber = 0;
         companyNumber = 0;
     }
@@ -55,6 +58,12 @@ contract Cred {
         require(verifiedInstitution[admin] == true, "Only Universities can become Admins");
         admins[admin] = true;
         emit addedAdmin(admin);
+    }
+
+    function removeAdmin(address admin) public {
+        require(admins[msg.sender] == true, "Not Admin!");
+        require(owner == msg.sender, "Not Owner");
+        admins[admin] = false;
     }
 
     // Allows admins to add institutions that can issue credentials
